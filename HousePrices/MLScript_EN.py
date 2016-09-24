@@ -10,7 +10,9 @@ import seaborn as sns
 from sklearn.cross_validation import train_test_split
 from sklearn import preprocessing
 from sklearn.metrics import mean_squared_error
+from sklearn.pipeline import Pipeline
 from sklearn import ensemble
+from sklearn import linear_model
 
 pd.options.mode.chained_assignment = None 
 
@@ -94,18 +96,19 @@ def main():
 	X_train = preprocessing_code(X_train)
 	y_train = y_train[X_train.index]
 
-	clf_grad = ensemble.GradientBoostingRegressor(random_state = 42, min_samples_leaf = 9,\
-		max_depth = 5, n_estimators=100, learning_rate= 0.05)
-	grad_tree = clf_grad.fit(X_train[not_zero], np.log1p(y_train))
+	#clf_grad = ensemble.GradientBoostingRegressor(random_state = 42, min_samples_leaf = 17,max_depth = 8, n_estimators=70, learning_rate= 0.07)
+	clf_ElasticNet = linear_model.ElasticNet(alpha=0.01, l1_ratio = 0.4)
+	model = Pipeline([('poly', preprocessing.PolynomialFeatures(degree=2)), ('linear', clf_ElasticNet)])
+	grad_tree = model.fit(X_train[not_zero], y_train)
 
 	predicted_grad_train = grad_tree.predict(X_train[not_zero])
-	print rmse(y_train, np.expm1(predicted_grad_train))
+	print rmse(y_train, predicted_grad_train)
 
 	## test
 	X_test = preprocessing_code(X_test)
 	y_test = y_test[X_test.index]
 	predicted_grad_test = grad_tree.predict(X_test[not_zero])
-	print rmse(y_test, np.expm1(predicted_grad_test))
+	print rmse(y_test, predicted_grad_test)
 
 	# Final test
 	X_test_fin = testDf
@@ -113,7 +116,7 @@ def main():
 	
 	predicted_grad_test_fin = grad_tree.predict(X_test_fin[not_zero])
 
-	dictx = {'Id': X_test_fin.Id, 'SalePrice': np.expm1(predicted_grad_test_fin)}
+	dictx = {'Id': X_test_fin.Id, 'SalePrice': predicted_grad_test_fin}
 	outDf = pd.DataFrame(dictx)
 	outDf.to_csv('out.csv', index = False)
 
